@@ -19,5 +19,7 @@ COPY orchestrator/ ./orchestrator/
 # Copy all agent runners and CLAUDE.md files
 COPY agents/ ./agents/
 
-# Entrypoint
+# Both /app (for agents.*) and /app/orchestrator (for router, sessions, voice)
+ENV PYTHONPATH=/app:/app/orchestrator
+
 CMD ["python", "-u", "orchestrator/bot.py"]
