@@ -2,6 +2,8 @@
 
 import json
 import os
+import threading
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -254,5 +256,53 @@ def send_telegram_message(chat_id: str, text: str) -> str:
         return f"❌ Telegram помилка: {e}"
 
 
+# ── Daily email digest cron ───────────────────────────────────────────────────
+
+DIGEST_CHAT_ID = os.environ.get("TELEGRAM_DIGEST_CHAT_ID") or os.environ.get("TELEGRAM_ALLOWED_CHAT_IDS", "").split(",")[0].strip()
+EMAIL_DIGEST_HOUR = int(os.environ.get("EMAIL_DIGEST_HOUR", "20"))  # UTC hour
+
+
+def _send_tg(text: str) -> None:
+    if not TELEGRAM_BOT_TOKEN or not DIGEST_CHAT_ID:
+        return
+    try:
+        httpx.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={"chat_id": DIGEST_CHAT_ID, "text": text},
+            timeout=10,
+        )
+    except Exception:
+        pass
+
+
+def _email_digest_loop() -> None:
+    last_run_date = None
+    while True:
+        now = datetime.utcnow()
+        if now.hour == EMAIL_DIGEST_HOUR and now.date() != last_run_date:
+            last_run_date = now.date()
+            summary = get_email_summary(max_results=15, query="is:unread")
+            _send_tg(f"📬 Дайджест пошти ({now.strftime('%d.%m %H:%M')} UTC):\n\n{summary}")
+        time.sleep(60)
+
+
+def _reminder_loop() -> None:
+    while True:
+        if DATABASE_URL:
+            try:
+                with _conn() as conn:
+                    rows = conn.execute(
+                        "SELECT id, chat_id, message FROM reminders WHERE remind_at <= NOW() AND sent = FALSE"
+                    ).fetchall()
+                    for row_id, chat_id, message in rows:
+                        _send_tg(f"🔔 Нагадування: {message}")
+                        conn.execute("UPDATE reminders SET sent=TRUE WHERE id=%s", (row_id,))
+            except Exception:
+                pass
+        time.sleep(60)
+
+
 if __name__ == "__main__":
+    threading.Thread(target=_email_digest_loop, daemon=True).start()
+    threading.Thread(target=_reminder_loop, daemon=True).start()
     mcp.run(transport="streamable-http", host="0.0.0.0", port=PORT, path="/mcp")
