@@ -112,7 +112,7 @@ server.tool(
     }
 
     // Append to Google Sheets
-    if (GOOGLE_SHEET_ID && GOOGLE_CREDENTIALS) {
+    if (GOOGLE_SHEET_ID) {
       try {
         const auth = await getGoogleAuth();
         const { google } = await import("googleapis");
@@ -205,11 +205,11 @@ server.tool(
     duration_minutes: z.number().default(60).describe("Duration of the meeting in minutes"),
   },
   async ({ days, duration_minutes }) => {
-    if (!GOOGLE_CREDENTIALS || !GOOGLE_CALENDAR_ID) {
+    if (!GOOGLE_CALENDAR_ID) {
       return {
         content: [{
           type: "text",
-          text: "ℹ️ Google Calendar не налаштований (GOOGLE_CREDENTIALS_JSON / GOOGLE_CALENDAR_ID)",
+          text: "ℹ️ Google Calendar не налаштований (GOOGLE_CALENDAR_ID)",
         }],
       };
     }
@@ -270,14 +270,6 @@ server.tool(
     query: z.string().optional().describe("Gmail search query, e.g. 'from:candidate@email.com'"),
   },
   async ({ max_results, query }) => {
-    if (!GOOGLE_CREDENTIALS) {
-      return {
-        content: [{
-          type: "text",
-          text: "ℹ️ Gmail не налаштований (GOOGLE_CREDENTIALS_JSON)",
-        }],
-      };
-    }
     try {
       const auth = await getGoogleAuth();
       const { google } = await import("googleapis");
