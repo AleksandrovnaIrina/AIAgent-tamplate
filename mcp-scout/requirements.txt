@@ -1,0 +1,11 @@
+fastmcp>=2.0
+psycopg[binary]==3.2.*
+requests==2.32.*
+google-auth==2.*
+google-auth-oauthlib==1.*
+google-api-python-client==2.*
+duckduckgo-search>=6.0
+html2text>=2020.1.8
+httpx>=0.27
+beautifulsoup4>=4.12
+telethon>=1.36

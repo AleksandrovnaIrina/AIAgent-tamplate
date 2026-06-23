@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  @page { size: A4; margin: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #1a1a1a;
+    background: #fff;
+  }
+
+  /* Cover page */
+  .cover {
+    width: 210mm; height: 297mm;
+    background: {{ accent_color | default('#c97b4b') }};
+    color: #fff;
+    display: flex; flex-direction: column;
+    padding: 60mm 25mm 20mm;
+    page-break-after: always;
+  }
+  .cover-eyebrow {
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    opacity: 0.7;
+    margin-bottom: 24pt;
+  }
+  .cover-title {
+    font-family: 'Fraunces', serif;
+    font-size: 52pt;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    flex: 1;
+  }
+  .cover-subtitle {
+    font-size: 14pt;
+    line-height: 1.6;
+    opacity: 0.8;
+    margin-top: 24pt;
+    max-width: 80%;
+  }
+  .cover-footer {
+    margin-top: auto;
+    padding-top: 20mm;
+    font-size: 11pt;
+    opacity: 0.6;
+    border-top: 1px solid rgba(255,255,255,0.3);
+    padding-top: 16pt;
+  }
+
+  /* Content pages */
+  .content {
+    padding: 20mm 25mm;
+  }
+  .section {
+    margin-bottom: 24pt;
+    break-inside: avoid;
+  }
+  .section-heading {
+    font-family: 'Fraunces', serif;
+    font-size: 22pt;
+    font-weight: 700;
+    color: {{ accent_color | default('#c97b4b') }};
+    margin-bottom: 12pt;
+    padding-bottom: 8pt;
+    border-bottom: 2px solid {{ accent_color | default('#c97b4b') }};
+  }
+  .section-body {
+    font-size: 11pt;
+    line-height: 1.75;
+    color: #2a2a2a;
+    white-space: pre-wrap;
+  }
+  .doc-footer {
+    margin-top: 32pt;
+    padding-top: 12pt;
+    border-top: 1px solid #e0e0e0;
+    font-size: 9pt;
+    color: #999;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  {% if eyebrow %}<div class="cover-eyebrow">{{ eyebrow }}</div>{% endif %}
+  <div class="cover-title">{{ title }}</div>
+  {% if subtitle %}<div class="cover-subtitle">{{ subtitle }}</div>{% endif %}
+  <div class="cover-footer">{{ author | default('') }}</div>
+</div>
+
+<div class="content">
+  {% for section in sections %}
+  <div class="section">
+    {% if section.heading %}<div class="section-heading">{{ section.heading }}</div>{% endif %}
+    <div class="section-body">{{ section.body }}</div>
+  </div>
+  {% endfor %}
+
+  {% if footer_text %}
+  <div class="doc-footer">
+    <span>{{ author | default('') }}</span>
+    <span>{{ footer_text }}</span>
+  </div>
+  {% endif %}
+</div>
+
+</body>
+</html>

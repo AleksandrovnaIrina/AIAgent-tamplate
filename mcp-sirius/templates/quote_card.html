@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: {{ background_color | default('#f4ede0') }};
+    color: {{ text_color | default('#1a1a1a') }};
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    width: 100%; height: 100%;
+    padding: 100px 90px;
+    display: flex; flex-direction: column;
+    justify-content: center; gap: 32px;
+  }
+  .mark {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 180px;
+    line-height: 0.6;
+    color: {{ accent_color | default('#c97b4b') }};
+    user-select: none;
+  }
+  .quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 64px;
+    line-height: 1.2;
+    font-weight: 400;
+  }
+  .meta {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-top: 8px;
+  }
+  .author {
+    font-family: 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: {{ accent_color | default('#c97b4b') }};
+  }
+  .handle {
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="mark">"</div>
+  <div class="quote">{{ quote }}</div>
+  <div class="meta">
+    {% if author %}<div class="author">{{ author }}</div>{% endif %}
+    {% if handle %}<div class="handle">{{ handle }}</div>{% endif %}
+  </div>
+</div>
+</body>
+</html>

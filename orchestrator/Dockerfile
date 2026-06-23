@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+# Node.js 20 for Claude Code CLI
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g @anthropic-ai/claude-code && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python deps
+COPY orchestrator/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy orchestrator code
+COPY orchestrator/ ./orchestrator/
+
+# Copy all agent runners and CLAUDE.md files
+COPY agents/ ./agents/
+
+# Entrypoint
+CMD ["python", "-u", "orchestrator/bot.py"]

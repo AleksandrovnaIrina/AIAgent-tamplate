@@ -1,5 +1,8 @@
+name: lumys
+
 services:
 
+  # ── Database ────────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -16,18 +19,17 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Shared memory MCP (port 3100) ───────────────────────────────────────────
   mcp-memory:
     build: ./mcp-memory
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
-      MCP_PORT: "3100"
-    ports:
-      - "3100:3100"
     depends_on:
       postgres:
         condition: service_healthy
 
+  # ── HR MCP tools — Google Calendar/Gmail/Sheets/Reminders (port 3200) ───────
   mcp-hr:
     build: ./mcp-hr
     restart: unless-stopped
@@ -39,31 +41,92 @@ services:
       GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
       GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
-      SERPAPI_KEY: ${SERPAPI_KEY:-}
-    ports:
-      - "3200:3200"
     depends_on:
       postgres:
         condition: service_healthy
 
-  telegram-bot:
-    build: ./telegram-bot
+  # ── Scout MCP — sourcing/recruiting tools (port 3400) ───────────────────────
+  mcp-scout:
+    build: ./mcp-scout
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      MCP_PORT: "3400"
+      CANDIDATE_SHEET_ID: ${CANDIDATE_SHEET_ID:-}
+      RESEARCH_SHEET_ID: ${RESEARCH_SHEET_ID:-}
+      GOOGLE_SECRETS_DIR: /app/secrets
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    volumes:
+      - ./secrets:/app/secrets:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Argus MCP — Instagram competitor tools (port 3500) ──────────────────────
+  mcp-argus:
+    build: ./mcp-argus
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      MCP_PORT: "3500"
+      GOOGLE_CREDENTIALS_FILE: /app/secrets/google_credentials.json
+    volumes:
+      - ./secrets:/app/secrets:ro
+      - ./competitors.yml:/app/competitors.yml
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Sirius MCP — content/Notion/PDF/Banner tools (port 3600) ────────────────
+  mcp-sirius:
+    build: ./mcp-sirius
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      MCP_PORT: "3600"
+      NOTION_TOKEN: ${NOTION_TOKEN:-}
+      NOTION_DATABASE_ID: ${NOTION_DATABASE_ID:-}
+      SIRIUS_DRIVE_FOLDER_ID: ${SIRIUS_DRIVE_FOLDER_ID:-}
+      RESEARCH_SHEET_ID: ${RESEARCH_SHEET_ID:-}
+      GOOGLE_SECRETS_DIR: /app/secrets
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    volumes:
+      - ./secrets:/app/secrets:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Orchestrator — single Telegram entry point ───────────────────────────────
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_ALLOWED_CHAT_IDS: ${TELEGRAM_ALLOWED_CHAT_IDS}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
-      MCP_MEMORY_URL: http://mcp-memory:3100/mcp
-      MCP_HR_URL: http://mcp-hr:3200/mcp
+      CLAUDE_TOKEN_1: ${CLAUDE_TOKEN_1:-}
+      CLAUDE_TOKEN_2: ${CLAUDE_TOKEN_2:-}
+      ROUTER_MODEL: ${ROUTER_MODEL:-claude-haiku-4-5-20251001}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-6}
       CLAUDE_MAX_TURNS: ${CLAUDE_MAX_TURNS:-20}
+      MCP_MEMORY_URL: http://mcp-memory:3100/mcp
+      MCP_HR_URL: http://mcp-hr:3200/mcp
+      MCP_SCOUT_URL: http://mcp-scout:3400/mcp
+      MCP_ARGUS_URL: http://mcp-argus:3500/mcp
+      MCP_SIRIUS_URL: http://mcp-sirius:3600/mcp
       GROQ_API_KEY: ${GROQ_API_KEY:-}
     depends_on:
       - mcp-memory
       - mcp-hr
+      - mcp-scout
+      - mcp-argus
+      - mcp-sirius
 
-  scout:
+  # ── HR Scout cron — Djinni/DOU/LinkedIn X-Ray ───────────────────────────────
+  scout-hr:
     build: ./scout
     restart: unless-stopped
     environment:
@@ -72,11 +135,27 @@ services:
       TELEGRAM_DIGEST_CHAT_ID: ${TELEGRAM_DIGEST_CHAT_ID}
       APIFY_TOKEN: ${APIFY_TOKEN:-}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
-      SERPAPI_KEY: ${SERPAPI_KEY:-}
       SCOUT_CRON: ${SCOUT_CRON:-0 9 * * 1}
       SCOUT_RUN_ON_START: ${SCOUT_RUN_ON_START:-false}
     volumes:
       - ./vacancies.yml:/app/vacancies.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Instagram Scout cron — competitor reels ──────────────────────────────────
+  scout-ig:
+    build: ./scout-ig
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_DIGEST_CHAT_ID: ${TELEGRAM_DIGEST_CHAT_ID}
+      APIFY_TOKEN: ${APIFY_TOKEN:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      SCOUT_CRON: ${IG_SCOUT_CRON:-0 6 * * 1}
+    volumes:
+      - ./competitors.yml:/app/competitors.yml:ro
     depends_on:
       postgres:
         condition: service_healthy
