@@ -1,0 +1,85 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lumys
+      POSTGRES_USER: lumys
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumys -d lumys"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mcp-memory:
+    build: ./mcp-memory
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      MCP_PORT: "3100"
+    ports:
+      - "3100:3100"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mcp-hr:
+    build: ./mcp-hr
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      MCP_HR_PORT: "3200"
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON:-}
+      GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
+      GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      SERPAPI_KEY: ${SERPAPI_KEY:-}
+    ports:
+      - "3200:3200"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  telegram-bot:
+    build: ./telegram-bot
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_ALLOWED_CHAT_IDS: ${TELEGRAM_ALLOWED_CHAT_IDS}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      MCP_MEMORY_URL: http://mcp-memory:3100/mcp
+      MCP_HR_URL: http://mcp-hr:3200/mcp
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-6}
+      CLAUDE_MAX_TURNS: ${CLAUDE_MAX_TURNS:-20}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    depends_on:
+      - mcp-memory
+      - mcp-hr
+
+  scout:
+    build: ./scout
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_DIGEST_CHAT_ID: ${TELEGRAM_DIGEST_CHAT_ID}
+      APIFY_TOKEN: ${APIFY_TOKEN:-}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      SERPAPI_KEY: ${SERPAPI_KEY:-}
+      SCOUT_CRON: ${SCOUT_CRON:-0 9 * * 1}
+      SCOUT_RUN_ON_START: ${SCOUT_RUN_ON_START:-false}
+    volumes:
+      - ./vacancies.yml:/app/vacancies.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

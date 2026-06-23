@@ -1,0 +1,20 @@
+# LumysAgent — Активні вакансії для Auto-Scout
+# Scout читає цей файл і шукає кандидатів щотижня
+# Перезапусти сервіс після змін: docker compose restart scout
+
+vacancies:
+  - title: "Senior Python Developer"
+    stack: [python, fastapi, postgresql]
+    seniority: senior
+    candidates_per_run: 20
+    sources: [djinni, linkedin_xray]
+
+  # Приклад другої вакансії (розкоментуй):
+  # - title: "Middle React Developer"
+  #   stack: [react, typescript, node]
+  #   seniority: middle
+  #   candidates_per_run: 15
+  #   sources: [djinni, dou, linkedin_xray]
+
+digest:
+  top_n: 10    # скільки кандидатів включати в дайджест
