@@ -407,14 +407,17 @@ async function sendPendingReminders() {
 
 setInterval(sendPendingReminders, 60_000);
 
-// ── HTTP transport ────────────────────────────────────────────────────────────
-const transport = new StreamableHTTPServerTransport({ path: "/mcp" });
-
-const httpServer = createServer((req, res) => {
-  transport.handleRequest(req, res);
+// ── HTTP transport (stateless — new transport per request for reliability) ───
+const httpServer = createServer(async (req, res) => {
+  if (req.url !== "/mcp") {
+    res.writeHead(404).end("Not found");
+    return;
+  }
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  await server.connect(transport);
+  await transport.handleRequest(req, res);
+  await transport.close();
 });
-
-await server.connect(transport);
 
 httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`LumysAgent HR MCP server listening on port ${PORT}`);
