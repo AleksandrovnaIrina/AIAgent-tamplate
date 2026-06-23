@@ -1,12 +1,12 @@
-FROM node:20-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY package.json .
-RUN npm install --omit=dev
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY index.js .
+COPY server.py .
 
 EXPOSE 3200
 
-CMD ["node", "index.js"]
+CMD ["python", "-u", "server.py"]
