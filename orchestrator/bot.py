@@ -92,6 +92,30 @@ async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f"Останній агент: {label}")
 
 
+async def cmd_email(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    await _process_text(update, "Зроби самарі нових листів у Gmail")
+
+
+async def cmd_digest(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    role = " ".join(ctx.args) if ctx.args else ""
+    query = f"Знайди кандидатів на Djinni і DOU{' на роль ' + role if role else ''}"
+    await _process_text(update, query)
+
+
+async def cmd_tgsearch(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    keywords = " ".join(ctx.args) if ctx.args else ""
+    if not keywords:
+        await update.message.reply_text("Використання: /tgsearch <ключові слова>")
+        return
+    await _process_text(update, f"Пошук в Telegram-каналах: {keywords}")
+
+
 async def _process_text(update: Update, text: str) -> None:
     chat_id = update.effective_chat.id
     bot = update.get_bot()
@@ -202,6 +226,9 @@ def main() -> None:
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("new", cmd_new))
     app.add_handler(CommandHandler("agent", cmd_agent))
+    app.add_handler(CommandHandler("email", cmd_email))
+    app.add_handler(CommandHandler("digest", cmd_digest))
+    app.add_handler(CommandHandler("tgsearch", cmd_tgsearch))
     app.add_handler(MessageHandler(filters.VOICE, on_voice))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
 
