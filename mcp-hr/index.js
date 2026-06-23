@@ -12,34 +12,60 @@ import { createServer } from "http";
 import pg from "pg";
 import fetch from "node-fetch";
 
+import { readFileSync, existsSync } from "fs";
+
 const { Pool } = pg;
 
 const PORT = parseInt(process.env.MCP_HR_PORT || "3200");
 const DATABASE_URL = process.env.DATABASE_URL;
-const GOOGLE_CREDENTIALS = process.env.GOOGLE_CREDENTIALS_JSON
-  ? JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON)
-  : null;
 const GOOGLE_SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const GOOGLE_CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
 const BRAVE_API_KEY = process.env.BRAVE_API_KEY || process.env.SERPAPI_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
+const OAUTH_TOKEN_PATH = process.env.GOOGLE_TOKEN_PATH || "/secrets/google-token.json";
+const CLIENT_SECRET_PATH = process.env.GOOGLE_CLIENT_SECRET_PATH || "/secrets/client_secret.json";
+
 const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL }) : null;
 
-// ─── Google Auth ────────────────────────────────────────────────────────────
+// ─── Google Auth (OAuth — works for Gmail, Calendar, Sheets) ────────────────
 
 async function getGoogleAuth() {
-  if (!GOOGLE_CREDENTIALS) throw new Error("GOOGLE_CREDENTIALS_JSON not set");
   const { google } = await import("googleapis");
-  const auth = new google.auth.GoogleAuth({
-    credentials: GOOGLE_CREDENTIALS,
-    scopes: [
-      "https://www.googleapis.com/auth/spreadsheets",
-      "https://www.googleapis.com/auth/calendar.readonly",
-      "https://www.googleapis.com/auth/gmail.readonly",
-    ],
-  });
-  return auth;
+
+  // OAuth path: use refresh token from mounted secrets
+  if (existsSync(OAUTH_TOKEN_PATH) && existsSync(CLIENT_SECRET_PATH)) {
+    const tokenData = JSON.parse(readFileSync(OAUTH_TOKEN_PATH, "utf8"));
+    const secretData = JSON.parse(readFileSync(CLIENT_SECRET_PATH, "utf8"));
+    const creds = secretData.installed || secretData.web;
+    const oauth2 = new google.auth.OAuth2(
+      creds.client_id,
+      creds.client_secret,
+      creds.redirect_uris?.[0]
+    );
+    oauth2.setCredentials({
+      refresh_token: tokenData.refresh_token,
+      access_token: tokenData.token,
+    });
+    return oauth2;
+  }
+
+  // Service account fallback
+  const serviceAccount = process.env.GOOGLE_CREDENTIALS_JSON
+    ? JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON)
+    : null;
+  if (serviceAccount) {
+    return new google.auth.GoogleAuth({
+      credentials: serviceAccount,
+      scopes: [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/gmail.readonly",
+      ],
+    });
+  }
+
+  throw new Error("No Google credentials found. Mount /secrets or set GOOGLE_CREDENTIALS_JSON.");
 }
 
 // ─── MCP Server ──────────────────────────────────────────────────────────────

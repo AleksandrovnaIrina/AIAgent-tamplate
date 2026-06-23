@@ -41,6 +41,8 @@ services:
       GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
       GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+    volumes:
+      - ./secrets:/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy
