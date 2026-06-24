@@ -16,6 +16,7 @@ from telegram.ext import (
     filters,
 )
 
+import files
 import sessions
 import voice
 from router import classify, AgentName
@@ -217,6 +218,36 @@ async def on_voice(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await _process_text(update, transcript)
 
 
+async def on_document(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    doc = update.message.document or update.message.audio
+    if not doc:
+        return
+    filename = getattr(doc, "file_name", None) or "file"
+    if not files.is_supported(filename):
+        await update.message.reply_text(
+            f"⚠️ Формат не підтримується: `{filename}`\n"
+            "Підтримую: PDF, XLSX, DOCX, MP3, M4A, OGG, WAV",
+            parse_mode="Markdown",
+        )
+        return
+
+    caption = (update.message.caption or "").strip()
+    notice = await update.message.reply_text("📎 Читаю файл…")
+    try:
+        tg_file = await doc.get_file()
+        file_bytes = bytes(await tg_file.download_as_bytearray())
+        extracted = await files.extract(file_bytes, filename)
+    except Exception as e:
+        await notice.edit_text(f"⚠️ Не вдалося прочитати файл: {e}")
+        return
+
+    prompt = f"{extracted}\n\n{caption}" if caption else extracted
+    await notice.edit_text(f"📎 Файл прочитано: `{filename}`", parse_mode="Markdown")
+    await _process_text(update, prompt)
+
+
 def main() -> None:
     if not ALLOWED_CHAT_IDS:
         log.error("TELEGRAM_ALLOWED_CHAT_IDS is empty. Exiting.")
@@ -230,6 +261,8 @@ def main() -> None:
     app.add_handler(CommandHandler("digest", cmd_digest))
     app.add_handler(CommandHandler("tgsearch", cmd_tgsearch))
     app.add_handler(MessageHandler(filters.VOICE, on_voice))
+    app.add_handler(MessageHandler(filters.AUDIO, on_document))
+    app.add_handler(MessageHandler(filters.Document.ALL, on_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
 
     log.info("LumysAgent Orchestrator starting — chats: %s", sorted(ALLOWED_CHAT_IDS))

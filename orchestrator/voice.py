@@ -13,15 +13,24 @@ def voice_enabled() -> bool:
     return bool(GROQ_API_KEY)
 
 
+_MIME = {
+    ".ogg": "audio/ogg", ".oga": "audio/ogg",
+    ".mp3": "audio/mpeg", ".m4a": "audio/mp4",
+    ".wav": "audio/wav", ".flac": "audio/flac",
+}
+
+
 async def transcribe(audio_bytes: bytes, filename: str = "voice.ogg") -> Optional[str]:
     if not voice_enabled():
         return None
+    ext = os.path.splitext(filename)[1].lower()
+    mime = _MIME.get(ext, "audio/ogg")
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(
                 GROQ_TRANSCRIBE_URL,
                 headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-                files={"file": (filename, audio_bytes, "audio/ogg")},
+                files={"file": (filename, audio_bytes, mime)},
                 data={"model": "whisper-large-v3-turbo"},
             )
             resp.raise_for_status()
