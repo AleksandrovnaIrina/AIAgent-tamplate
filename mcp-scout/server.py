@@ -630,4 +630,4 @@ def delete_reminder(reminder_id: int) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="sse", host=HOST, port=PORT)
+    mcp.run(transport="streamable-http", host=HOST, port=PORT, path="/mcp")

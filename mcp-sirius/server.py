@@ -289,4 +289,4 @@ def read_url(url: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", host=HOST, port=PORT)
+    mcp.run(transport="streamable-http", host=HOST, port=PORT, path="/mcp")
