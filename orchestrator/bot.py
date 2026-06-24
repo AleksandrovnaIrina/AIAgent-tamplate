@@ -121,10 +121,13 @@ async def _process_text(update: Update, text: str) -> None:
     chat_id = update.effective_chat.id
     bot = update.get_bot()
 
-    session_id, last_agent = sessions.get_session(chat_id)
+    _, last_agent = sessions.get_session(chat_id)
 
     # Classify intent (fast keyword lookup → LLM fallback)
     agent: AgentName = await classify(text, last_agent)
+
+    # Get this agent's own session (preserves context per agent)
+    session_id, _ = sessions.get_session(chat_id, agent)
     runner = _AGENT_RUNNERS[agent]
     label = _AGENT_LABELS[agent]
 
