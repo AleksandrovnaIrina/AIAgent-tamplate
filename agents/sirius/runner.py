@@ -9,6 +9,7 @@ _runner = AgentRunner(
     mcp_servers={
         "memory": {"type": "http", "url": os.environ.get("MCP_MEMORY_URL",  "http://mcp-memory:3100/mcp")},
         "sirius": {"type": "http", "url": os.environ.get("MCP_SIRIUS_URL",  "http://mcp-sirius:3600/mcp")},
+        "scout":  {"type": "http", "url": os.environ.get("MCP_SCOUT_URL",   "http://mcp-scout:3400/mcp")},
     },
     timeout=600,
 )
