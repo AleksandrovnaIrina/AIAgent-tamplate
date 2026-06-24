@@ -19,9 +19,13 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Optional
 
+import httpx
 from fastmcp import FastMCP
+
+APIFY_TOKEN = os.environ.get("APIFY_TOKEN", "")
 
 import boolean_builder as _bool
 import calendar_tool as _cal
@@ -112,9 +116,9 @@ def read_url(url: str) -> dict:
     """Fetch a web page and return its readable text content (max 10,000 chars).
 
     Use for:
-    - Reading candidate LinkedIn profiles shared as URLs
     - Reading job postings for competitive analysis
     - Reading articles, company pages, or any public URL
+    NOTE: For LinkedIn profiles use fetch_linkedin_profile instead.
 
     Args:
       url: public URL to fetch
@@ -122,6 +126,72 @@ def read_url(url: str) -> dict:
     Returns: {url, status_code, text, truncated}
     """
     return _fetch.read_url(url)
+
+
+@mcp.tool()
+def fetch_linkedin_profile(url: str) -> str:
+    """Fetch a LinkedIn profile by URL using Apify scraper (bypasses LinkedIn bot protection).
+
+    Use this whenever Iryna shares a linkedin.com/in/... URL and wants to:
+    - Screen / evaluate a candidate
+    - See experience, skills, education
+    - Write personalized outreach
+
+    Args:
+      url: LinkedIn profile URL (linkedin.com/in/username)
+    """
+    if not APIFY_TOKEN:
+        return "❌ APIFY_TOKEN не встановлено — неможливо зчитати LinkedIn профіль."
+
+    actor = "2SyF0bVxmgGr8IVCZ"  # apify/linkedin-profile-scraper
+    run_url = f"https://api.apify.com/v2/acts/{actor}/run-sync-get-dataset-items"
+
+    try:
+        resp = httpx.post(
+            run_url,
+            params={"token": APIFY_TOKEN, "timeout": 60},
+            json={"profileUrls": [url]},
+            timeout=90,
+        )
+        resp.raise_for_status()
+        items = resp.json()
+        if not items:
+            return f"❌ Apify не повернув даних для {url}"
+
+        p = items[0]
+        parts = [
+            f"**{p.get('fullName', '')}**",
+            p.get('headline', ''),
+            f"📍 {p.get('location', '')}" if p.get('location') else "",
+            f"🔗 {url}",
+            "",
+        ]
+
+        if p.get('summary'):
+            parts += ["**About:**", p['summary'], ""]
+
+        for exp in (p.get('experiences') or [])[:5]:
+            title = exp.get('title', '')
+            company = exp.get('companyName', '')
+            duration = exp.get('duration', '')
+            parts.append(f"• {title} @ {company} ({duration})")
+
+        skills = p.get('skills') or []
+        if skills:
+            parts += ["", f"**Skills:** {', '.join(s.get('name', s) if isinstance(s, dict) else s for s in skills[:20])}"]
+
+        edu = p.get('educations') or []
+        for e in edu[:2]:
+            school = e.get('schoolName', '')
+            degree = e.get('degreeName', '')
+            parts.append(f"🎓 {degree} — {school}")
+
+        return "\n".join(p for p in parts if p is not None)
+
+    except httpx.HTTPStatusError as e:
+        return f"❌ Apify помилка {e.response.status_code}: {e.response.text[:200]}"
+    except Exception as e:
+        return f"❌ Помилка: {e}"
 
 
 # ---- Job Description (Google Sheets) ----

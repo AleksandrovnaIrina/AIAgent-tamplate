@@ -58,6 +58,7 @@ services:
       RESEARCH_SHEET_ID: ${RESEARCH_SHEET_ID:-}
       GOOGLE_SECRETS_DIR: /app/secrets
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      APIFY_TOKEN: ${APIFY_TOKEN:-}
     volumes:
       - ./secrets:/app/secrets:ro
     depends_on:
