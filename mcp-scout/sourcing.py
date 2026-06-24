@@ -1,49 +1,39 @@
-"""LinkedIn X-Ray candidate sourcing via Serper.dev API."""
+"""LinkedIn X-Ray candidate sourcing via DuckDuckGo."""
 from __future__ import annotations
 
 import logging
-import os
 import re
-import time
-
-import requests
 
 log = logging.getLogger(__name__)
 
-SERPER_URL = "https://google.serper.dev/search"
 _LOCATION_RE = re.compile(r"[-–|·•]\s*([^·•\-–]+(?:,\s*[^·•\-–]+)*)\s*$")
 
 
 def _build_queries(position: str, location: str, keywords: list[str] | None = None) -> list[str]:
-    base = f'site:linkedin.com/in/ "{position}" "{location}"'
+    base = f'site:linkedin.com/in "{position}" "{location}"'
     if not keywords:
         return [base]
-    pairs = [f'"{kw}"' for kw in keywords[:8]]
-    extra = [f'{base} {a} {b}' for a, b in zip(pairs[::2], pairs[1::2])]
+    pairs = [f'"{kw}"' for kw in keywords[:6]]
+    extra = [f'{base} {kw}' for kw in pairs[:3]]
     return [base] + extra
 
 
-def _serper_request(query: str, num: int = 10) -> dict:
-    api_key = os.getenv("SERPER_API_KEY", "")
-    if not api_key:
-        raise ValueError("SERPER_API_KEY is not configured")
-    resp = requests.post(
-        SERPER_URL,
-        headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
-        json={"q": query, "num": num},
-        timeout=15,
-    )
-    resp.raise_for_status()
-    return resp.json()
+def _ddg_search(query: str, max_results: int = 10) -> list[dict]:
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        from duckduckgo_search import DDGS
+    with DDGS() as ddgs:
+        return list(ddgs.text(query, max_results=max_results))
 
 
-def _parse_item(item: dict, position: str, location: str) -> dict | None:
-    url: str = item.get("link", "")
+def _parse_item(r: dict, position: str, location: str) -> dict | None:
+    url: str = r.get("href", "") or r.get("link", "") or r.get("url", "")
     if "linkedin.com/in/" not in url:
         return None
 
-    title: str = item.get("title", "")
-    snippet: str = item.get("snippet", "")
+    title: str = r.get("title", "")
+    snippet: str = r.get("body", "") or r.get("snippet", "")
 
     parts = [p.strip() for p in re.split(r"\s[-–|]\s", title)]
     full_name = re.sub(r"\s*\|\s*LinkedIn$", "", parts[0], flags=re.IGNORECASE).strip()
@@ -69,7 +59,7 @@ def find_linkedin_candidates(
     keywords: list[str] | None = None,
     max_results: int = 20,
 ) -> list[dict]:
-    """Search LinkedIn profiles via Google X-Ray (Serper API)."""
+    """Search LinkedIn profiles via DuckDuckGo X-Ray."""
     queries = _build_queries(position, location, keywords)
     seen: set[str] = set()
     candidates: list[dict] = []
@@ -77,20 +67,18 @@ def find_linkedin_candidates(
     for query in queries:
         if len(candidates) >= max_results:
             break
-        log.info("Serper X-Ray: %s", query)
+        log.info("DDG X-Ray: %s", query)
         try:
-            data = _serper_request(query, num=10)
+            results = _ddg_search(query, max_results=10)
         except Exception as exc:
-            log.warning("Serper request failed: %s", exc)
+            log.warning("DDG search failed: %s", exc)
             continue
 
-        for item in data.get("organic", []):
-            c = _parse_item(item, position, location)
+        for r in results:
+            c = _parse_item(r, position, location)
             if c and c["url"] not in seen:
                 seen.add(c["url"])
                 candidates.append(c)
-
-        time.sleep(0.3)
 
     log.info("X-Ray complete: %d candidates for '%s' in '%s'", len(candidates), position, location)
     return candidates[:max_results]
