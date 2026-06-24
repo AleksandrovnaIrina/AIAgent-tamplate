@@ -131,114 +131,48 @@ def read_url(url: str) -> dict:
 
 @mcp.tool()
 def fetch_linkedin_profile(url: str) -> str:
-    """Fetch a LinkedIn profile by URL (bypasses LinkedIn bot protection).
+    """Fetch a LinkedIn profile via DuckDuckGo search (same as X-Ray candidate search).
 
-    Use this whenever Iryna shares a linkedin.com/in/... URL and wants to:
-    - Screen / evaluate a candidate
-    - See experience, skills, education
-    - Write personalized outreach
+    Use this whenever Iryna shares a linkedin.com/in/... URL.
 
     Args:
       url: LinkedIn profile URL (linkedin.com/in/username)
     """
-    # Try Proxycurl first (dedicated LinkedIn API, no permission issues)
-    if PROXYCURL_API_KEY:
-        return _fetch_via_proxycurl(url)
-    # Fallback to Apify
-    if APIFY_TOKEN:
-        return _fetch_via_apify(url)
-    return "❌ Встанови PROXYCURL_API_KEY або APIFY_TOKEN для читання LinkedIn профілів."
+    # Extract username from URL
+    import re
+    match = re.search(r'linkedin\.com/in/([^/?#]+)', url)
+    username = match.group(1).rstrip('/') if match else None
+    if not username:
+        return f"❌ Не вдалося розпізнати LinkedIn URL: {url}"
 
+    results = _search.web_search(
+        query=f"site:linkedin.com/in/{username}",
+        max_results=5,
+        sites=["linkedin.com"],
+    )
 
-def _fetch_via_proxycurl(url: str) -> str:
-    try:
-        resp = httpx.get(
-            "https://nubela.co/proxycurl/api/v2/linkedin",
-            params={"url": url, "use_cache": "if-present"},
-            headers={"Authorization": f"Bearer {PROXYCURL_API_KEY}"},
-            timeout=30,
-        )
-        resp.raise_for_status()
-        p = resp.json()
+    if not results:
+        return f"❌ DuckDuckGo не знайшов профіль: {url}"
 
-        parts = [
-            f"**{p.get('full_name', '')}**",
-            p.get('headline', ''),
-            f"📍 {p.get('city', '')} {p.get('country_full_name', '')}".strip(),
-            f"🔗 {url}",
-            "",
-        ]
-        if p.get('summary'):
-            parts += ["**About:**", p['summary'], ""]
+    # Also search for more context about this person
+    name_results = _search.web_search(
+        query=f'linkedin.com/in/{username} HR recruiter experience',
+        max_results=5,
+    )
 
-        for exp in (p.get('experiences') or [])[:5]:
-            title = exp.get('title', '')
-            company = exp.get('company', '')
-            duration = f"{exp.get('starts_at', {}).get('year', '')}–{exp.get('ends_at', {}).get('year', '') or 'зараз'}"
-            parts.append(f"• {title} @ {company} ({duration})")
+    parts = [f"🔗 {url}", ""]
+    seen = set()
+    for r in results + name_results:
+        snippet = r.get('snippet', '').strip()
+        title = r.get('title', '').strip()
+        if snippet and snippet not in seen:
+            seen.add(snippet)
+            if title:
+                parts.append(f"**{title}**")
+            parts.append(snippet)
+            parts.append("")
 
-        skills = [s.get('name', '') for s in (p.get('skills') or [])[:20]]
-        if skills:
-            parts += ["", f"**Skills:** {', '.join(skills)}"]
-
-        for e in (p.get('education') or [])[:2]:
-            school = e.get('school', '')
-            degree = e.get('degree_name', '')
-            parts.append(f"🎓 {degree} — {school}")
-
-        return "\n".join(x for x in parts if x is not None)
-
-    except httpx.HTTPStatusError as e:
-        return f"❌ Proxycurl помилка {e.response.status_code}: {e.response.text[:200]}"
-    except Exception as e:
-        return f"❌ Proxycurl помилка: {e}"
-
-
-def _fetch_via_apify(url: str) -> str:
-    actor = "2SyF0bVxmgGr8IVCZ"
-    run_url = f"https://api.apify.com/v2/acts/{actor}/run-sync-get-dataset-items"
-    try:
-        resp = httpx.post(
-            run_url,
-            params={"token": APIFY_TOKEN, "timeout": 60},
-            json={"profileUrls": [url]},
-            timeout=90,
-        )
-        resp.raise_for_status()
-        items = resp.json()
-        if not items:
-            return f"❌ Apify не повернув даних для {url}"
-
-        p = items[0]
-        parts = [
-            f"**{p.get('fullName', '')}**",
-            p.get('headline', ''),
-            f"📍 {p.get('location', '')}" if p.get('location') else "",
-            f"🔗 {url}",
-            "",
-        ]
-        if p.get('summary'):
-            parts += ["**About:**", p['summary'], ""]
-
-        for exp in (p.get('experiences') or [])[:5]:
-            title = exp.get('title', '')
-            company = exp.get('companyName', '')
-            duration = exp.get('duration', '')
-            parts.append(f"• {title} @ {company} ({duration})")
-
-        skills = p.get('skills') or []
-        if skills:
-            parts += ["", f"**Skills:** {', '.join(s.get('name', s) if isinstance(s, dict) else s for s in skills[:20])}"]
-
-        for e in (p.get('educations') or [])[:2]:
-            parts.append(f"🎓 {e.get('degreeName', '')} — {e.get('schoolName', '')}")
-
-        return "\n".join(x for x in parts if x is not None)
-
-    except httpx.HTTPStatusError as e:
-        return f"❌ Apify помилка {e.response.status_code}: {e.response.text[:200]}"
-    except Exception as e:
-        return f"❌ Apify помилка: {e}"
+    return "\n".join(parts) if parts else f"❌ Профіль не знайдено: {url}"
 
 
 # ---- Job Description (Google Sheets) ----
