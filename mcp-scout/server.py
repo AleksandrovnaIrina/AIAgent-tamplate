@@ -26,6 +26,7 @@ import httpx
 from fastmcp import FastMCP
 
 APIFY_TOKEN = os.environ.get("APIFY_TOKEN", "")
+PROXYCURL_API_KEY = os.environ.get("PROXYCURL_API_KEY", "")
 
 import boolean_builder as _bool
 import calendar_tool as _cal
@@ -130,7 +131,7 @@ def read_url(url: str) -> dict:
 
 @mcp.tool()
 def fetch_linkedin_profile(url: str) -> str:
-    """Fetch a LinkedIn profile by URL using Apify scraper (bypasses LinkedIn bot protection).
+    """Fetch a LinkedIn profile by URL (bypasses LinkedIn bot protection).
 
     Use this whenever Iryna shares a linkedin.com/in/... URL and wants to:
     - Screen / evaluate a candidate
@@ -140,12 +141,62 @@ def fetch_linkedin_profile(url: str) -> str:
     Args:
       url: LinkedIn profile URL (linkedin.com/in/username)
     """
-    if not APIFY_TOKEN:
-        return "❌ APIFY_TOKEN не встановлено — неможливо зчитати LinkedIn профіль."
+    # Try Proxycurl first (dedicated LinkedIn API, no permission issues)
+    if PROXYCURL_API_KEY:
+        return _fetch_via_proxycurl(url)
+    # Fallback to Apify
+    if APIFY_TOKEN:
+        return _fetch_via_apify(url)
+    return "❌ Встанови PROXYCURL_API_KEY або APIFY_TOKEN для читання LinkedIn профілів."
 
-    actor = "2SyF0bVxmgGr8IVCZ"  # apify/linkedin-profile-scraper
+
+def _fetch_via_proxycurl(url: str) -> str:
+    try:
+        resp = httpx.get(
+            "https://nubela.co/proxycurl/api/v2/linkedin",
+            params={"url": url, "use_cache": "if-present"},
+            headers={"Authorization": f"Bearer {PROXYCURL_API_KEY}"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        p = resp.json()
+
+        parts = [
+            f"**{p.get('full_name', '')}**",
+            p.get('headline', ''),
+            f"📍 {p.get('city', '')} {p.get('country_full_name', '')}".strip(),
+            f"🔗 {url}",
+            "",
+        ]
+        if p.get('summary'):
+            parts += ["**About:**", p['summary'], ""]
+
+        for exp in (p.get('experiences') or [])[:5]:
+            title = exp.get('title', '')
+            company = exp.get('company', '')
+            duration = f"{exp.get('starts_at', {}).get('year', '')}–{exp.get('ends_at', {}).get('year', '') or 'зараз'}"
+            parts.append(f"• {title} @ {company} ({duration})")
+
+        skills = [s.get('name', '') for s in (p.get('skills') or [])[:20]]
+        if skills:
+            parts += ["", f"**Skills:** {', '.join(skills)}"]
+
+        for e in (p.get('education') or [])[:2]:
+            school = e.get('school', '')
+            degree = e.get('degree_name', '')
+            parts.append(f"🎓 {degree} — {school}")
+
+        return "\n".join(x for x in parts if x is not None)
+
+    except httpx.HTTPStatusError as e:
+        return f"❌ Proxycurl помилка {e.response.status_code}: {e.response.text[:200]}"
+    except Exception as e:
+        return f"❌ Proxycurl помилка: {e}"
+
+
+def _fetch_via_apify(url: str) -> str:
+    actor = "2SyF0bVxmgGr8IVCZ"
     run_url = f"https://api.apify.com/v2/acts/{actor}/run-sync-get-dataset-items"
-
     try:
         resp = httpx.post(
             run_url,
@@ -166,7 +217,6 @@ def fetch_linkedin_profile(url: str) -> str:
             f"🔗 {url}",
             "",
         ]
-
         if p.get('summary'):
             parts += ["**About:**", p['summary'], ""]
 
@@ -180,18 +230,15 @@ def fetch_linkedin_profile(url: str) -> str:
         if skills:
             parts += ["", f"**Skills:** {', '.join(s.get('name', s) if isinstance(s, dict) else s for s in skills[:20])}"]
 
-        edu = p.get('educations') or []
-        for e in edu[:2]:
-            school = e.get('schoolName', '')
-            degree = e.get('degreeName', '')
-            parts.append(f"🎓 {degree} — {school}")
+        for e in (p.get('educations') or [])[:2]:
+            parts.append(f"🎓 {e.get('degreeName', '')} — {e.get('schoolName', '')}")
 
-        return "\n".join(p for p in parts if p is not None)
+        return "\n".join(x for x in parts if x is not None)
 
     except httpx.HTTPStatusError as e:
         return f"❌ Apify помилка {e.response.status_code}: {e.response.text[:200]}"
     except Exception as e:
-        return f"❌ Помилка: {e}"
+        return f"❌ Apify помилка: {e}"
 
 
 # ---- Job Description (Google Sheets) ----

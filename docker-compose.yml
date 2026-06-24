@@ -59,6 +59,7 @@ services:
       GOOGLE_SECRETS_DIR: /app/secrets
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       APIFY_TOKEN: ${APIFY_TOKEN:-}
+      PROXYCURL_API_KEY: ${PROXYCURL_API_KEY:-}
     volumes:
       - ./secrets:/app/secrets:ro
     depends_on:
