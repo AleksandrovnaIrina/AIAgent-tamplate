@@ -26,7 +26,10 @@ def web_search(
     sites: list[str] | None = None,
     region: str = "wt-wt",
 ) -> list[dict]:
-    from duckduckgo_search import DDGS
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        from duckduckgo_search import DDGS
 
     if sites:
         site_filter = " OR ".join(f"site:{s}" for s in sites)
