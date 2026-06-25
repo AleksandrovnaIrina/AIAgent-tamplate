@@ -45,6 +45,13 @@ _KEYWORDS: dict[str, AgentName] = {
     "pdf": "sirius", "банер": "sirius", "banner": "sirius", "notion": "sirius",
     "контент-план": "sirius", "lead magnet": "sirius", "лід магніт": "sirius",
     "youtube": "sirius", "написати пост": "sirius", "постий": "sirius",
+    # lumys
+    "пошт": "lumys", "gmail": "lumys", "email": "lumys", "імейл": "lumys",
+    "самарі пошти": "lumys", "листи": "lumys", "лист від": "lumys",
+    "нагадай": "lumys", "нагадування": "lumys", "reminder": "lumys",
+    "календар": "lumys", "calendar": "lumys", "зустріч": "lumys", "слот": "lumys",
+    "пам'ять": "lumys", "запам'ятай": "lumys", "memory": "lumys",
+    "/email": "lumys", "/new": "lumys",
 }
 
 
@@ -66,7 +73,8 @@ async def classify(message: str, last_agent: AgentName | None = None) -> AgentNa
 
     # Fall back to LLM classification (haiku — fast + cheap)
     try:
-        client = anthropic.Anthropic(api_key=CLAUDE_CODE_OAUTH_TOKEN or None)
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or CLAUDE_CODE_OAUTH_TOKEN or None
+        client = anthropic.Anthropic(api_key=api_key)
         context = f"\nPrevious agent: {last_agent}" if last_agent else ""
         response = client.messages.create(
             model=ROUTER_MODEL,
