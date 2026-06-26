@@ -322,7 +322,8 @@ async def on_document(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     caption = (update.message.caption or "").strip()
-    notice = await update.message.reply_text("📎 Читаю файл…")
+    is_audio = files.is_audio_file(filename)
+    notice = await update.message.reply_text("🎙 Транскрибую аудіо…" if is_audio else "📎 Читаю файл…")
     try:
         tg_file = await doc.get_file()
         file_bytes = bytes(await tg_file.download_as_bytearray())
@@ -331,8 +332,21 @@ async def on_document(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         await notice.edit_text(f"⚠️ Не вдалося прочитати файл: {e}")
         return
 
+    if is_audio and not caption:
+        caption = (
+            "Зроби структуроване самарі цього запису українською мовою.\n"
+            "Формат:\n"
+            "**Тип зустрічі:** (1:1 / мітінг / нарада / інше)\n"
+            "**Учасники:** (якщо згадуються)\n"
+            "**Ключові теми:**\n"
+            "**Рішення:**\n"
+            "**Action items:** (хто / що / коли)\n"
+            "**Відкриті питання:**\n\n"
+            "Якщо це не мітінг — просто коротко перекажи суть."
+        )
+
     prompt = f"{extracted}\n\n{caption}" if caption else extracted
-    await notice.edit_text(f"📎 Файл прочитано: `{filename}`", parse_mode="Markdown")
+    await notice.edit_text(f"🎙 Транскрибовано: `{filename}`" if is_audio else f"📎 Файл прочитано: `{filename}`", parse_mode="Markdown")
     await _process_text(update, prompt)
 
 
