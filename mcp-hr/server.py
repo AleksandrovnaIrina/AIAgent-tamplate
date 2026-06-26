@@ -127,15 +127,29 @@ def save_job_description(title: str, stack: str = "", seniority: str = "", requi
 # ── set_reminder ──────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def set_reminder(chat_id: str, message: str, remind_at: str) -> str:
-    """Schedule a reminder to be sent via Telegram at the given time (ISO format)."""
+def set_reminder(message: str, remind_at: str, chat_id: str = "") -> str:
+    """Schedule a reminder to be sent via Telegram at the given time.
+
+    Args:
+        message: Text of the reminder.
+        remind_at: When to send it — ISO 8601 datetime string, e.g. "2026-06-29T10:00:00+02:00".
+                   Warsaw timezone is UTC+2 (summer) / UTC+1 (winter).
+        chat_id: Telegram chat ID. Leave empty — the server fills it automatically.
+    """
     if not DATABASE_URL:
         return "ℹ️ DATABASE_URL не встановлено"
-    with _conn() as conn:
-        conn.execute(
-            "INSERT INTO reminders (chat_id, message, remind_at) VALUES (%s, %s, %s)",
-            (chat_id, message, remind_at),
-        )
+    if not chat_id:
+        chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_IDS", "").split(",")[0].strip()
+    if not chat_id:
+        return "❌ chat_id невідомий — встанови TELEGRAM_ALLOWED_CHAT_IDS"
+    try:
+        with _conn() as conn:
+            conn.execute(
+                "INSERT INTO reminders (chat_id, message, remind_at) VALUES (%s, %s, %s)",
+                (chat_id, message, remind_at),
+            )
+    except Exception as e:
+        return f"❌ Не вдалося зберегти нагадування: {e}"
     return f"✅ Нагадування встановлено на {remind_at}"
 
 
