@@ -14,7 +14,7 @@ from fastmcp import FastMCP
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 PORT = int(os.environ.get("MCP_HR_PORT", "3200"))
-GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID", "")
+GOOGLE_SHEET_ID = os.environ.get("CANDIDATE_SHEET_ID", "") or os.environ.get("GOOGLE_SHEET_ID", "")
 GOOGLE_CALENDAR_ID = os.environ.get("GOOGLE_CALENDAR_ID", "")
 BRAVE_API_KEY = os.environ.get("BRAVE_API_KEY") or os.environ.get("SERPAPI_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
