@@ -329,7 +329,18 @@ async def on_document(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         file_bytes = bytes(await tg_file.download_as_bytearray())
         extracted = await files.extract(file_bytes, filename)
     except Exception as e:
-        await notice.edit_text(f"⚠️ Не вдалося прочитати файл: {e}")
+        err = str(e).lower()
+        if "too big" in err or "file is too big" in err:
+            await notice.edit_text(
+                "⚠️ Файл завеликий для прямого завантаження (>20MB).\n\n"
+                "Стисни аудіо перед відправкою:\n"
+                "• Mac: GarageBand → Share → MP3, 64kbps\n"
+                "• iPhone: Voice Memos → вже стиснуто\n"
+                "• Онлайн: mp3smaller.com\n\n"
+                "Або надішли частинами по 15 хв."
+            )
+        else:
+            await notice.edit_text(f"⚠️ Не вдалося прочитати файл: {e}")
         return
 
     if is_audio and not caption:
