@@ -1,10 +1,12 @@
 """LumysAgent Orchestrator — single Telegram entry point that routes to specialized agents."""
 
 import asyncio
+import base64
 import logging
 import os
 import time
 
+import anthropic
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.error import BadRequest
@@ -15,6 +17,9 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+
+# Photo+text buffer TTL (seconds)
+_PHOTO_BUFFER_TTL = 180
 
 import files
 import sessions
@@ -189,12 +194,57 @@ async def _process_text(update: Update, text: str) -> None:
     log.info("chat=%s agent=%s len=%d", chat_id, agent, len(final_text))
 
 
+def _buf_fresh(entry: dict, ttl: int = _PHOTO_BUFFER_TTL) -> bool:
+    return (time.monotonic() - entry["ts"]) < ttl
+
+
+async def _handle_photo_with_intent(update: Update, b64: str, intent: str) -> None:
+    """Send image + intent to Claude vision, then route result as text."""
+    notice = await update.message.reply_text("🖼 Аналізую зображення…")
+    try:
+        client = anthropic.Anthropic(
+            api_key=os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+        )
+        resp = client.messages.create(
+            model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6"),
+            max_tokens=1024,
+            system=(
+                "Відповідай мовою запиту. "
+                "Якщо на зображенні є контакт (ім'я, телефон, @нік, email) і тебе просять написати — "
+                "витягни їх, перший рядок «Кому: …», нижче готовий текст. "
+                "Якщо просять перекласти або прочитати — зроби це. "
+                "Ніколи не питай «що зробити?» — визнач намір сам і виконай."
+            ),
+            messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}},
+                {"type": "text", "text": intent},
+            ]}],
+        )
+        vision_result = resp.content[0].text.strip()
+    except Exception as e:
+        await notice.edit_text(f"⚠️ Помилка аналізу зображення: {e}")
+        return
+
+    await notice.edit_text(f"🖼 Фото прочитано")
+    await _process_text(update, vision_result)
+
+
 async def on_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     if not _allowed(update):
         return
     user_text = (update.message.text or "").strip()
     if not user_text:
         return
+
+    # Check if there's a recent photo waiting for a command
+    last_photo = ctx.user_data.get("last_photo")
+    if last_photo and _buf_fresh(last_photo):
+        ctx.user_data.pop("last_photo", None)
+        ctx.user_data.pop("last_text", None)
+        await _handle_photo_with_intent(update, last_photo["b64"], user_text)
+        return
+
+    ctx.user_data["last_text"] = {"text": user_text, "ts": time.monotonic()}
     await _process_text(update, user_text)
 
 
@@ -219,6 +269,41 @@ async def on_voice(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         return
     await notice.edit_text(f"🎙 {transcript}")
     await _process_text(update, transcript)
+
+
+async def on_photo(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    photo = update.message.photo[-1]  # largest size
+    tg_file = await photo.get_file()
+    photo_bytes = bytes(await tg_file.download_as_bytearray())
+    b64 = base64.b64encode(photo_bytes).decode()
+
+    caption = (update.message.caption or "").strip()
+
+    # Caption = inline command → handle immediately
+    if caption:
+        ctx.user_data.pop("last_photo", None)
+        ctx.user_data.pop("last_text", None)
+        await _handle_photo_with_intent(update, b64, caption)
+        return
+
+    # Check if there's a recent text command
+    last_text = ctx.user_data.get("last_text")
+    if last_text and _buf_fresh(last_text):
+        ctx.user_data.pop("last_text", None)
+        ctx.user_data.pop("last_photo", None)
+        await _handle_photo_with_intent(update, b64, last_text["text"])
+        return
+
+    # No command yet — buffer the photo and wait
+    ctx.user_data["last_photo"] = {"b64": b64, "ts": time.monotonic()}
+    await update.message.reply_text(
+        "🖼 Фото отримано. Що зробити? Наприклад:\n"
+        "• проскрінуй / оціни кандидата\n"
+        "• напиши цій людині\n"
+        "• переклади / що тут написано"
+    )
 
 
 async def on_document(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -264,6 +349,7 @@ def main() -> None:
     app.add_handler(CommandHandler("digest", cmd_digest))
     app.add_handler(CommandHandler("tgsearch", cmd_tgsearch))
     app.add_handler(MessageHandler(filters.VOICE, on_voice))
+    app.add_handler(MessageHandler(filters.PHOTO, on_photo))
     app.add_handler(MessageHandler(filters.AUDIO, on_document))
     app.add_handler(MessageHandler(filters.Document.ALL, on_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
