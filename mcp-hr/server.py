@@ -21,6 +21,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
 OAUTH_TOKEN_PATH = Path(os.environ.get("GOOGLE_TOKEN_PATH", "/secrets/google-token.json"))
 CLIENT_SECRET_PATH = Path(os.environ.get("GOOGLE_CLIENT_SECRET_PATH", "/secrets/client_secret.json"))
+SERVICE_ACCOUNT_PATH = Path(os.environ.get("GOOGLE_SERVICE_ACCOUNT_PATH", "/secrets/google_credentials.json"))
 
 mcp = FastMCP("lumys-hr")
 
@@ -56,6 +57,22 @@ def _google_creds():
     if creds.expired and creds.refresh_token:
         creds.refresh(GRequest())
     return creds
+
+
+def _service_account_creds(scopes: list[str]):
+    """Return service account credentials if google_credentials.json exists."""
+    from google.oauth2 import service_account
+    return service_account.Credentials.from_service_account_file(
+        str(SERVICE_ACCOUNT_PATH), scopes=scopes
+    )
+
+
+def _sheets_creds():
+    """Return credentials for Sheets — service account preferred, OAuth fallback."""
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    if SERVICE_ACCOUNT_PATH.exists():
+        return _service_account_creds(scopes)
+    return _google_creds()
 
 
 # ── track_candidate ───────────────────────────────────────────────────────────
@@ -94,7 +111,7 @@ def track_candidate(
     if GOOGLE_SHEET_ID:
         try:
             from googleapiclient.discovery import build
-            creds = _google_creds()
+            creds = _sheets_creds()
             sheets = build("sheets", "v4", credentials=creds)
             sheets.spreadsheets().values().append(
                 spreadsheetId=GOOGLE_SHEET_ID,
