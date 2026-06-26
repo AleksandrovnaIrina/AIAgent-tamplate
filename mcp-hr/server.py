@@ -159,14 +159,19 @@ def set_reminder(message: str, remind_at: str, chat_id: str = "") -> str:
         chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_IDS", "").split(",")[0].strip()
     if not chat_id:
         return "❌ chat_id невідомий — встанови TELEGRAM_ALLOWED_CHAT_IDS"
+    conn = _conn()
     try:
-        with _conn() as conn:
-            conn.execute(
-                "INSERT INTO reminders (chat_id, message, remind_at) VALUES (%s, %s, %s)",
-                (chat_id, message, remind_at),
-            )
+        conn.execute(
+            "INSERT INTO reminders (chat_id, message, remind_at) VALUES (%s, %s, %s)",
+            (chat_id, message, remind_at),
+        )
     except Exception as e:
         return f"❌ Не вдалося зберегти нагадування: {e}"
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
     return f"✅ Нагадування встановлено на {remind_at}"
 
 
