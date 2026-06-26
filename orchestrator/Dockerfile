@@ -22,6 +22,9 @@ COPY orchestrator/ ./orchestrator/
 # Copy all agent runners and CLAUDE.md files
 COPY agents/ ./agents/
 
+# Claude Code skills (systematic-debugging, mcp-builder, cold-email)
+COPY .claude/ ./.claude/
+
 RUN chown -R lumys:lumys /app
 
 # Both /app (for agents.*) and /app/orchestrator (for router, sessions, voice)
