@@ -198,40 +198,70 @@ def _buf_fresh(entry: dict, ttl: int = _PHOTO_BUFFER_TTL) -> bool:
     return (time.monotonic() - entry["ts"]) < ttl
 
 
+def _vision_client() -> anthropic.Anthropic:
+    """Return Anthropic client — API key preferred, OAuth tokens as fallback."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if api_key:
+        return anthropic.Anthropic(api_key=api_key)
+    for env in ("CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_TOKEN_1", "CLAUDE_TOKEN_2"):
+        tok = os.environ.get(env)
+        if tok:
+            return anthropic.Anthropic(auth_token=tok)
+    raise RuntimeError("Немає жодного API ключа для vision")
+
+
+_VISION_SYSTEM = (
+    "Відповідай мовою запиту. "
+    "Якщо на зображенні є контакт (ім'я, телефон, @нік, email) і тебе просять написати — "
+    "витягни їх, перший рядок «Кому: …», нижче готовий текст. "
+    "Якщо просять перекласти або прочитати — зроби це. "
+    "Ніколи не питай «що зробити?» — визнач намір сам і виконай."
+)
+
+
 async def _handle_photo_with_intent(update: Update, b64: str, intent: str) -> None:
     """Send image + intent to Claude vision, then route result as text."""
     notice = await update.message.reply_text("🖼 Аналізую зображення…")
-    try:
-        _api_key = os.environ.get("ANTHROPIC_API_KEY")
-        _oauth = (
-            os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
-            or os.environ.get("CLAUDE_TOKEN_1")
-        )
-        if _api_key:
-            client = anthropic.Anthropic(api_key=_api_key)
-        else:
-            client = anthropic.Anthropic(auth_token=_oauth)
-        resp = client.messages.create(
-            model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6"),
-            max_tokens=1024,
-            system=(
-                "Відповідай мовою запиту. "
-                "Якщо на зображенні є контакт (ім'я, телефон, @нік, email) і тебе просять написати — "
-                "витягни їх, перший рядок «Кому: …», нижче готовий текст. "
-                "Якщо просять перекласти або прочитати — зроби це. "
-                "Ніколи не питай «що зробити?» — визнач намір сам і виконай."
-            ),
-            messages=[{"role": "user", "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}},
-                {"type": "text", "text": intent},
-            ]}],
-        )
-        vision_result = resp.content[0].text.strip()
-    except Exception as e:
-        await notice.edit_text(f"⚠️ Помилка аналізу зображення: {e}")
+    tokens = [
+        os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"),
+        os.environ.get("CLAUDE_TOKEN_1"),
+        os.environ.get("CLAUDE_TOKEN_2"),
+    ]
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    candidates = (
+        [(True, api_key)] if api_key
+        else [(False, t) for t in tokens if t]
+    )
+    vision_result = None
+    last_err = None
+    for is_key, tok in candidates:
+        try:
+            client = (
+                anthropic.Anthropic(api_key=tok)
+                if is_key
+                else anthropic.Anthropic(auth_token=tok)
+            )
+            resp = client.messages.create(
+                model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6"),
+                max_tokens=1024,
+                system=_VISION_SYSTEM,
+                messages=[{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}},
+                    {"type": "text", "text": intent},
+                ]}],
+            )
+            vision_result = resp.content[0].text.strip()
+            break
+        except Exception as e:
+            last_err = e
+            log.warning("Vision attempt failed (%s): %s", tok[:20] if tok else "?", e)
+            continue
+
+    if not vision_result:
+        await notice.edit_text(f"⚠️ Помилка аналізу зображення: {last_err}")
         return
 
-    await notice.edit_text(f"🖼 Фото прочитано")
+    await notice.edit_text("🖼 Фото прочитано")
     await _process_text(update, vision_result)
 
 
