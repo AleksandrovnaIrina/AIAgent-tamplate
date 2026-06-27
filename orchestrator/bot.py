@@ -202,9 +202,15 @@ async def _handle_photo_with_intent(update: Update, b64: str, intent: str) -> No
     """Send image + intent to Claude vision, then route result as text."""
     notice = await update.message.reply_text("🖼 Аналізую зображення…")
     try:
-        client = anthropic.Anthropic(
-            api_key=os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+        _api_key = os.environ.get("ANTHROPIC_API_KEY")
+        _oauth = (
+            os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+            or os.environ.get("CLAUDE_TOKEN_1")
         )
+        if _api_key:
+            client = anthropic.Anthropic(api_key=_api_key)
+        else:
+            client = anthropic.Anthropic(auth_token=_oauth)
         resp = client.messages.create(
             model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6"),
             max_tokens=1024,
