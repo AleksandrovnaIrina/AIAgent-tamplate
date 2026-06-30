@@ -55,6 +55,26 @@ _KEYWORDS: dict[str, AgentName] = {
 }
 
 
+_CONTINUATION_SIGNALS = [
+    "так", "ні", "добре", "окей", "ок", "супер", "чудово", "дякую", "класно",
+    "але", "проте", "тому що", "бо ", "і ще", "а ще", "можна", "давай",
+    "зроби", "переписи", "скороти", "додай", "прибери", "постий", "збережи",
+    "варіант", "перший", "другий", "цей", "той", "ось", "чому", "як ти",
+    "погоджуюсь", "не погоджуюсь", "частково", "правильно", "неправильно",
+]
+
+
+def _is_continuation(message: str) -> bool:
+    """Short follow-up that's likely continuing the previous conversation."""
+    msg = message.lower().strip()
+    if len(msg) < 80:
+        return True
+    for signal in _CONTINUATION_SIGNALS:
+        if signal in msg:
+            return True
+    return False
+
+
 def _keyword_route(message: str) -> AgentName | None:
     msg_lower = message.lower()
     for kw, agent in _KEYWORDS.items():
@@ -65,7 +85,12 @@ def _keyword_route(message: str) -> AgentName | None:
 
 async def classify(message: str, last_agent: AgentName | None = None) -> AgentName:
     """Classify user message and return the agent to handle it."""
-    # Try fast keyword lookup first
+    # Continuation of current conversation — stay with last agent
+    if last_agent and _is_continuation(message):
+        log.debug("continuation → %s", last_agent)
+        return last_agent
+
+    # Try fast keyword lookup
     agent = _keyword_route(message)
     if agent:
         log.debug("keyword route → %s", agent)
@@ -75,7 +100,7 @@ async def classify(message: str, last_agent: AgentName | None = None) -> AgentNa
     try:
         api_key = os.environ.get("ANTHROPIC_API_KEY") or CLAUDE_CODE_OAUTH_TOKEN or None
         client = anthropic.Anthropic(api_key=api_key)
-        context = f"\nPrevious agent: {last_agent}" if last_agent else ""
+        context = f"\nPrevious agent: {last_agent}. Prefer {last_agent} if message continues prior topic." if last_agent else ""
         response = client.messages.create(
             model=ROUTER_MODEL,
             max_tokens=10,
