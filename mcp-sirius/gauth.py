@@ -33,8 +33,11 @@ def credentials() -> Credentials:
     if not creds.valid:
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            TOKEN_PATH.write_text(creds.to_json())
-            TOKEN_PATH.chmod(0o600)
+            try:
+                TOKEN_PATH.write_text(creds.to_json())
+                TOKEN_PATH.chmod(0o600)
+            except OSError:
+                log.debug("Cannot persist refreshed token (read-only FS) — using in-memory creds")
         else:
             raise RuntimeError(
                 f"Google OAuth token at {TOKEN_PATH} is invalid and cannot be "

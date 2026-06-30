@@ -35,14 +35,17 @@ def credentials() -> Credentials:
         if creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
-                TOKEN_PATH.write_text(creds.to_json())
-                TOKEN_PATH.chmod(0o600)
-                _svc_cache.clear()
             except Exception as e:
                 raise RuntimeError(
                     f"Google token refresh failed ({e}). "
                     "Re-run setup_gmail_auth.py to re-authorize."
                 ) from e
+            try:
+                TOKEN_PATH.write_text(creds.to_json())
+                TOKEN_PATH.chmod(0o600)
+            except OSError:
+                log.debug("Cannot persist refreshed token (read-only FS) — using in-memory creds")
+            _svc_cache.clear()
         else:
             raise RuntimeError(
                 f"Google OAuth token at {TOKEN_PATH} is invalid. "
