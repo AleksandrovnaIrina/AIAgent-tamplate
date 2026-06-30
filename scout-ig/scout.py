@@ -106,10 +106,18 @@ def run_apify(handles: list[str], results_limit: int) -> list[dict]:
     run = client.actor(APIFY_ACTOR).call(
         run_input={"username": handles, "resultsLimit": results_limit}
     )
-    if not run or not run.get("defaultDatasetId"):
+    if not run:
+        log.error("apify call returned None")
+        return []
+    # SDK ≥2.0 returns a Run object with attributes; older versions return a dict
+    if hasattr(run, "default_dataset_id"):
+        dataset_id = run.default_dataset_id
+    else:
+        dataset_id = run.get("defaultDatasetId") if isinstance(run, dict) else None
+    if not dataset_id:
         log.error("apify returned no dataset id: %s", run)
         return []
-    items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
+    items = list(client.dataset(dataset_id).iterate_items())
     log.info("apify returned %d items", len(items))
     return items
 
