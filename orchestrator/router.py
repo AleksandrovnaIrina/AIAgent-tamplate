@@ -85,16 +85,16 @@ def _keyword_route(message: str) -> AgentName | None:
 
 async def classify(message: str, last_agent: AgentName | None = None) -> AgentName:
     """Classify user message and return the agent to handle it."""
-    # Continuation of current conversation — stay with last agent
-    if last_agent and _is_continuation(message):
-        log.debug("continuation → %s", last_agent)
-        return last_agent
-
-    # Try fast keyword lookup
+    # Keyword lookup first — explicit keywords always beat continuation heuristic
     agent = _keyword_route(message)
     if agent:
         log.debug("keyword route → %s", agent)
         return agent
+
+    # No keyword match → short/ambiguous message stays with last agent
+    if last_agent and _is_continuation(message):
+        log.debug("continuation → %s", last_agent)
+        return last_agent
 
     # Fall back to LLM classification (haiku — fast + cheap)
     try:
