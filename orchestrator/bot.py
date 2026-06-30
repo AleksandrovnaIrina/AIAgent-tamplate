@@ -71,12 +71,20 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         return
     await update.message.reply_text(
         "LumysAgent онлайн 🟢\n\n"
-        "Я оркестратор — автоматично перенаправляю твій запит до потрібного агента:\n\n"
-        "👥 *Scout* — HR: сорсинг, скрінінг, аутріч, Boolean/X-Ray\n"
-        "🔍 *Argus* — Instagram: моніторинг конкурентів, caption, каруселі\n"
-        "✍️ *Sirius* — Контент: LinkedIn пости, PDF, банери, Notion\n"
-        "🤖 *Lumys* — Загальне: пам'ять, нагадування, Gmail, Calendar\n\n"
-        "Просто пиши — визначу хто потрібен автоматично.\n"
+        "Просто пиши — визначу хто потрібен автоматично.\n\n"
+        "👥 *Scout* — HR, сорсинг, кандидати\n"
+        "🔍 *Argus* — Instagram, конкуренти\n"
+        "✍️ *Sirius* — Контент, LinkedIn пости\n"
+        "🤖 *Lumys* — Пам'ять, нагадування, Gmail\n\n"
+        "*Команди для швидкого виклику:*\n"
+        "/scout — переключити на Scout\n"
+        "/argus — переключити на Argus\n"
+        "/sirius — переключити на Sirius\n"
+        "/lumys — переключити на Lumys\n"
+        "/post \\[тема\\] — LinkedIn пост\n"
+        "/find \\[запит\\] — пошук кандидатів\n"
+        "/1on1 \\[тема\\] — підготовка 1:1\n"
+        "/email — самарі листів Gmail\n"
         "/new — нова сесія",
         parse_mode="Markdown",
     )
@@ -122,14 +130,20 @@ async def cmd_tgsearch(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await _process_text(update, f"Пошук в Telegram-каналах: {keywords}")
 
 
-async def _process_text(update: Update, text: str) -> None:
+async def _process_text(
+    update: Update, text: str, force_agent: "AgentName | None" = None
+) -> None:
     chat_id = update.effective_chat.id
     bot = update.get_bot()
 
     _, last_agent = sessions.get_session(chat_id)
 
-    # Classify intent (fast keyword lookup → LLM fallback)
-    agent: AgentName = await classify(text, last_agent)
+    # force_agent bypasses routing (slash commands, photo-in-conversation)
+    if force_agent:
+        agent: AgentName = force_agent
+    else:
+        # Classify intent (fast keyword lookup → LLM fallback)
+        agent = await classify(text, last_agent)
 
     # Get this agent's own session (preserves context per agent)
     session_id, _ = sessions.get_session(chat_id, agent)
@@ -219,15 +233,17 @@ _VISION_SYSTEM = (
 )
 
 
-async def _handle_photo_with_intent(update: Update, b64: str, intent: str) -> None:
+async def _handle_photo_with_intent(
+    update: Update, b64: str, intent: str, force_agent: "AgentName | None" = None
+) -> None:
     """Send image + intent to Claude vision, then route result as text."""
     notice = await update.message.reply_text("🖼 Аналізую зображення…")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     tokens = [
         os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"),
         os.environ.get("CLAUDE_TOKEN_1"),
         os.environ.get("CLAUDE_TOKEN_2"),
     ]
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
     candidates = (
         [(True, api_key)] if api_key
         else [(False, t) for t in tokens if t]
@@ -262,7 +278,59 @@ async def _handle_photo_with_intent(update: Update, b64: str, intent: str) -> No
         return
 
     await notice.edit_text("🖼 Фото прочитано")
-    await _process_text(update, vision_result)
+    await _process_text(update, vision_result, force_agent=force_agent)
+
+
+async def cmd_scout(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    text = " ".join(ctx.args) if ctx.args else "Вітаю, готовий до сорсингу!"
+    await _process_text(update, text, force_agent="scout")
+
+
+async def cmd_argus(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    text = " ".join(ctx.args) if ctx.args else "Вітаю, готовий до моніторингу!"
+    await _process_text(update, text, force_agent="argus")
+
+
+async def cmd_sirius(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    text = " ".join(ctx.args) if ctx.args else "Вітаю, готовий до контенту!"
+    await _process_text(update, text, force_agent="sirius")
+
+
+async def cmd_lumys(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    text = " ".join(ctx.args) if ctx.args else "Вітаю, чим можу допомогти?"
+    await _process_text(update, text, force_agent="lumys")
+
+
+async def cmd_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    topic = " ".join(ctx.args) if ctx.args else ""
+    text = f"Напиши LinkedIn пост на тему: {topic}" if topic else "Напиши LinkedIn пост"
+    await _process_text(update, text, force_agent="sirius")
+
+
+async def cmd_find(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    query = " ".join(ctx.args) if ctx.args else ""
+    text = f"Знайди кандидатів: {query}" if query else "Знайди кандидатів за активними вакансіями"
+    await _process_text(update, text, force_agent="scout")
+
+
+async def cmd_1on1(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _allowed(update):
+        return
+    topic = " ".join(ctx.args) if ctx.args else ""
+    text = f"Підготуй 1:1 зустріч: {topic}" if topic else "Підготуй 1:1 зустріч"
+    await _process_text(update, text, force_agent="lumys")
 
 
 async def on_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -317,11 +385,14 @@ async def on_photo(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
     caption = (update.message.caption or "").strip()
 
+    # Keep vision in the same agent session so conversation context is preserved
+    _, current_agent = sessions.get_session(update.effective_chat.id)
+
     # Caption = inline command → handle immediately
     if caption:
         ctx.user_data.pop("last_photo", None)
         ctx.user_data.pop("last_text", None)
-        await _handle_photo_with_intent(update, b64, caption)
+        await _handle_photo_with_intent(update, b64, caption, force_agent=current_agent)
         return
 
     # Check if there's a recent text command
@@ -329,7 +400,7 @@ async def on_photo(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     if last_text and _buf_fresh(last_text):
         ctx.user_data.pop("last_text", None)
         ctx.user_data.pop("last_photo", None)
-        await _handle_photo_with_intent(update, b64, last_text["text"])
+        await _handle_photo_with_intent(update, b64, last_text["text"], force_agent=current_agent)
         return
 
     # No command yet — buffer the photo and wait
@@ -405,6 +476,13 @@ def main() -> None:
     app.add_handler(CommandHandler("email", cmd_email))
     app.add_handler(CommandHandler("digest", cmd_digest))
     app.add_handler(CommandHandler("tgsearch", cmd_tgsearch))
+    app.add_handler(CommandHandler("scout", cmd_scout))
+    app.add_handler(CommandHandler("argus", cmd_argus))
+    app.add_handler(CommandHandler("sirius", cmd_sirius))
+    app.add_handler(CommandHandler("lumys", cmd_lumys))
+    app.add_handler(CommandHandler("post", cmd_post))
+    app.add_handler(CommandHandler("find", cmd_find))
+    app.add_handler(CommandHandler("1on1", cmd_1on1))
     app.add_handler(MessageHandler(filters.VOICE, on_voice))
     app.add_handler(MessageHandler(filters.PHOTO, on_photo))
     app.add_handler(MessageHandler(filters.AUDIO, on_document))
