@@ -34,12 +34,14 @@ CREATE TABLE IF NOT EXISTS scout_state (
 );
 
 CREATE TABLE IF NOT EXISTS scout_posts (
-    post_id           TEXT PRIMARY KEY,
-    competitor_handle TEXT NOT NULL,
-    post_url          TEXT,
-    caption           TEXT,
-    transcript        TEXT,
-    hook              TEXT,
+    post_id             TEXT PRIMARY KEY,
+    competitor_handle   TEXT NOT NULL,
+    post_url            TEXT,
+    caption             TEXT,
+    transcript          TEXT,
+    original_transcript TEXT,
+    transcript_ua       TEXT,
+    hook                TEXT,
     likes             INTEGER,
     comments          INTEGER,
     views             INTEGER,
