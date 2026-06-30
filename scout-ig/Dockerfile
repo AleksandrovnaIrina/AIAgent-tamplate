@@ -14,7 +14,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY scout.py entrypoint.sh trigger_watcher.py ./
+COPY scout.py entrypoint.sh trigger_watcher.py argus_analysis.py ./
 RUN chmod +x entrypoint.sh
 
 CMD ["./entrypoint.sh"]

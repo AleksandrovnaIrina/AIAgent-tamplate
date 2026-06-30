@@ -162,8 +162,14 @@ services:
       APIFY_TOKEN: ${APIFY_TOKEN:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       SCOUT_CRON: ${IG_SCOUT_CRON:-0 6 * * 1}
+      ARGUS_ANALYSIS_CRON: ${ARGUS_ANALYSIS_CRON:-0 8 * * 1}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-6}
+      ARGUS_SHEET_ID: ${ARGUS_SHEET_ID:-12dZo_zUayKFUoLhdqTC4Himqf6TcRAM6oqrQ5ygQzBQ}
+      GOOGLE_CREDENTIALS_FILE: /app/secrets/google_credentials.json
     volumes:
       - ./competitors.yml:/app/competitors.yml:ro
+      - ./secrets:/app/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy

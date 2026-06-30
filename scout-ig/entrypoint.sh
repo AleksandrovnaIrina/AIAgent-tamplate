@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Render crontab from SCOUT_CRON env, then run supercronic + trigger watcher.
+# Render crontab from SCOUT_CRON / ARGUS_ANALYSIS_CRON env vars.
 set -euo pipefail
 
 CRON="${SCOUT_CRON:-0 6 * * 1}"
+# 10:00 Warsaw CEST = 08:00 UTC (summer). Override ARGUS_ANALYSIS_CRON in .env if needed.
+ANALYSIS_CRON="${ARGUS_ANALYSIS_CRON:-0 8 * * 1}"
 CRONTAB=/app/crontab.rendered
 
 echo "${CRON} python /app/scout.py" > "${CRONTAB}"
+echo "${ANALYSIS_CRON} python /app/argus_analysis.py" >> "${CRONTAB}"
 
-echo "Scout starting — schedule: ${CRON}"
+echo "Scout — scrape: ${CRON} | analysis: ${ANALYSIS_CRON} (UTC)"
 
 # Run trigger watcher in background
 python /app/trigger_watcher.py &
