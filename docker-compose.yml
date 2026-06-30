@@ -76,6 +76,7 @@ services:
       DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
       MCP_PORT: "3500"
       GOOGLE_CREDENTIALS_FILE: /app/secrets/google_credentials.json
+      GOOGLE_SPREADSHEET_ID: ${ARGUS_SHEET_ID:-12dZo_zUayKFUoLhdqTC4Himqf6TcRAM6oqrQ5ygQzBQ}
     volumes:
       - ./secrets:/app/secrets:ro
       - ./competitors.yml:/app/competitors.yml
