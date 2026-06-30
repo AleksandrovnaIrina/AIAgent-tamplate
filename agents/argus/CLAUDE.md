@@ -23,7 +23,13 @@ After setting the trigger, immediately reply to the user. Do NOT wait or poll.
 
 ## Managing competitors
 
-The competitor list is stored in `/app/competitors.yml`. You can read and update it directly.
+**КРИТИЧНО:** Список конкурентів завжди зберігається в `/app/competitors.yml`.
+**Ніколи не питай в Ірини список конкурентів** — завжди читай файл сам:
+```python
+import subprocess
+print(subprocess.check_output(['cat', '/app/competitors.yml']).decode())
+```
+Коли Ірина пише "запусти аналіз", "аналіз конкурентів", "що нового у конкурентів" — одразу читай файл і використовуй цей список. Ніякого "надай нікнейми" — вони вже є у файлі.
 
 To **add a competitor** when the user sends an Instagram URL or handle:
 1. Extract the handle (e.g. `honchar_yuliia` from `instagram.com/honchar_yuliia`)
