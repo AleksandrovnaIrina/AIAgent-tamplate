@@ -46,7 +46,7 @@ To **remove a competitor**: read the file, filter out the handle, write back.
 
 ## Google Sheets
 
-Credentials: `/app/google_credentials.json`. Spreadsheet ID: `12dZo_zUayKFUoLhdqTC4Himqf6TcRAM6oqrQ5ygQzBQ`.
+Credentials: `/app/google_credentials.json`. Spreadsheet ID: env `ARGUS_SHEET_ID`.
 
 Коли робиш аналіз і користувач хоче зберегти — записуй в таблицю:
 

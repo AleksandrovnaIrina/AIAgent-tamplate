@@ -25,7 +25,7 @@ TELEGRAM_DIGEST_CHAT_ID = os.environ["TELEGRAM_DIGEST_CHAT_ID"]
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 GOOGLE_CREDENTIALS_FILE = os.environ.get("GOOGLE_CREDENTIALS_FILE", "/app/secrets/google_credentials.json")
-ARGUS_SHEET_ID = os.environ.get("ARGUS_SHEET_ID", "12dZo_zUayKFUoLhdqTC4Himqf6TcRAM6oqrQ5ygQzBQ")
+ARGUS_SHEET_ID = os.environ.get("ARGUS_SHEET_ID", "")
 
 
 def _fetch_posts(days: int = 7) -> list:

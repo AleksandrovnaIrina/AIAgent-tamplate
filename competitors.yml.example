@@ -1,0 +1,13 @@
+# Список Instagram-акаунтів конкурентів для Argus
+# Скопіюй у competitors.yml і заповни своїми акаунтами
+# Перезапуск після змін: docker compose restart scout-ig
+
+competitors:
+  - handle: competitor_handle_1   # без @
+  - handle: competitor_handle_2
+  - handle: competitor_handle_3
+  # Додай стільки, скільки потрібно
+
+settings:
+  reels_per_handle: 10            # скільки рілсів брати з кожного акаунту
+  days_back: 30                   # за скільки днів назад шукати

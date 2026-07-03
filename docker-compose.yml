@@ -76,7 +76,7 @@ services:
       DATABASE_URL: postgresql://lumys:${POSTGRES_PASSWORD}@postgres:5432/lumys
       MCP_PORT: "3500"
       GOOGLE_CREDENTIALS_FILE: /app/secrets/google_credentials.json
-      GOOGLE_SPREADSHEET_ID: ${ARGUS_SHEET_ID:-12dZo_zUayKFUoLhdqTC4Himqf6TcRAM6oqrQ5ygQzBQ}
+      GOOGLE_SPREADSHEET_ID: ${ARGUS_SHEET_ID:-}
     volumes:
       - ./secrets:/app/secrets:ro
       - ./competitors.yml:/app/competitors.yml
@@ -165,7 +165,7 @@ services:
       ARGUS_ANALYSIS_CRON: ${ARGUS_ANALYSIS_CRON:-0 8 * * 1}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-6}
-      ARGUS_SHEET_ID: ${ARGUS_SHEET_ID:-12dZo_zUayKFUoLhdqTC4Himqf6TcRAM6oqrQ5ygQzBQ}
+      ARGUS_SHEET_ID: ${ARGUS_SHEET_ID:-}
       GOOGLE_CREDENTIALS_FILE: /app/secrets/google_credentials.json
     volumes:
       - ./competitors.yml:/app/competitors.yml:ro
