@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Boolean and X-Ray search string builder for recruiting."""
 from __future__ import annotations
 

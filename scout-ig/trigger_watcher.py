@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Polls bot_settings for scout_trigger=run every 30s and launches scout.py when set."""
 import logging
 import os

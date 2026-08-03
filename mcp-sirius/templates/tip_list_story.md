@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # tip_list_story
 
 Story-format tip list (1080×1920). Coloured header block with title, numbered tips on dark background.

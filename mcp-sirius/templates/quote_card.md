@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # quote_card
 
 Editorial quote card with a serif quote, accent author tag, and handle.

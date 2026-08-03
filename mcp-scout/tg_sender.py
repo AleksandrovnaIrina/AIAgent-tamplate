@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Send Telegram messages via DB queue — scout-bot processes the queue using its persistent Telethon client."""
 from __future__ import annotations
 

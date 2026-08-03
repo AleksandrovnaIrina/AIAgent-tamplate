@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # cta_card
 
 Warm gradient CTA card — carousel finale. Structure: badge → headline → subline → italic CTA with arrow.

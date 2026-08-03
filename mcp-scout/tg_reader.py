@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Deep Telegram channel search via Telethon (personal account).
 
 Uses the same Telethon session as tg_sender so no extra auth is needed.

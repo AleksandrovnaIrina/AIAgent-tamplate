@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Generate Instagram carousel slides (1080×1080) with Iryna's brand palette."""
 import io
 import os

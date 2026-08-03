@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 /**
  * LumysAgent HR MCP Server
  * Tools: track_candidate, save_job_description, set_reminder,

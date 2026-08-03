@@ -1,0 +1,19 @@
+LumysAgent — Proprietary Notice
+
+Author and copyright holder: Iryna Subbotina
+Repository created: 2026-06-24
+Contact: i.subbotina04@gmail.com
+
+This project, including its architecture, agent design (Scout, Argus,
+Sirius, Lumys), prompts, and implementation, is original work authored
+by Iryna Subbotina. See LICENSE for full terms — in short: All Rights
+Reserved, no reuse, redistribution, or claim of authorship without
+written permission.
+
+This NOTICE file must be preserved, unmodified, in any copy or fork of
+this repository. Its removal does not remove the underlying copyright —
+it is documented evidence that a copy was deliberately stripped of
+attribution, which is relevant to any future infringement claim.
+
+Git commit history in this repository, signed and timestamped, serves as
+the authoritative record of authorship and creation dates.

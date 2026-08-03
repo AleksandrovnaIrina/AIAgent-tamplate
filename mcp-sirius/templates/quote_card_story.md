@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # quote_card_story
 
 Story-format quote card (1080×1920). Large serif quote centred vertically, decorative quote mark at top, author block at bottom.

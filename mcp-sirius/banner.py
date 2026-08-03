@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """HTML+data → PNG banner via Playwright/Chromium, then upload to Drive.
 
 Templates live in templates/<name>.html (Jinja2). Optional schema doc at

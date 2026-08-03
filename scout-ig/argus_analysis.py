@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Weekly competitor analysis — every Monday at 10:00 Warsaw time.
 
 Reads posts scraped by scout.py from the last 7 days,

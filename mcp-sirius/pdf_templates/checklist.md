@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # checklist
 
 Branded A4 checklist PDF with printable checkboxes. Supports flat list or grouped sections.

@@ -1,5 +1,7 @@
 # LumysAgent
 
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](LICENSE) / [NOTICE](NOTICE). Not for redistribution or reuse without permission.
+
 Персональний AI-агент для HR і рекрутингу. Telegram-бот на базі Claude Agent SDK.
 
 ## Можливості

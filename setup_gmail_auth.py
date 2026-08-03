@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Run this locally to get a fresh Google OAuth token, then upload to server."""
 import json
 import sys

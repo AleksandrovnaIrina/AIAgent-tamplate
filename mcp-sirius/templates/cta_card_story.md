@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # cta_card_story
 
 Story-format CTA card (1080×1920). Gradient background, bold headline at top, optional detail block in the centre, CTA at the bottom.

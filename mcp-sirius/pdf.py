@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """HTML → PDF via Playwright/Chromium, then upload to Google Drive."""
 from __future__ import annotations
 

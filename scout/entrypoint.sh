@@ -1,4 +1,5 @@
 #!/bin/sh
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 set -e
 
 CRON_EXPR="${SCOUT_CRON:-0 9 * * 1}"

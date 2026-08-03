@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # lead_magnet
 
 Branded A4 PDF lead magnet: cover page + content sections. Great for guides, frameworks, strategy docs.

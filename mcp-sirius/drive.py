@@ -1,3 +1,4 @@
+# © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — not open source. See LICENSE/NOTICE. Unauthorized copying, redistribution, or claim of authorship is prohibited.
 """Drive upload helper for Sirius artifacts (PDF + banner PNGs).
 
 Files land in SIRIUS_DRIVE_FOLDER_ID (or root if unset) and are marked

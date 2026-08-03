@@ -1,3 +1,5 @@
+> © 2026 Iryna Subbotina. All Rights Reserved. Proprietary — see [LICENSE](../../LICENSE) / [NOTICE](../../NOTICE). Not for redistribution or reuse without permission.
+
 # tip_list
 
 Dark editorial list card with numbered tips (01, 02, 03…). Ideal for "X mistakes I made", "Y things I learned" style content for LinkedIn or Instagram carousels.
