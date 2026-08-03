@@ -86,7 +86,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/find \\[запит\\] — пошук кандидатів\n"
         "/1on1 \\[тема\\] — підготовка 1:1\n"
         "/email — самарі листів Gmail\n"
-        "/new — нова сесія",
+        "/new — нова сесія\n\n"
+        "_© Iryna Subbotina — proprietary, не для розповсюдження_",
         parse_mode="Markdown",
     )
 
@@ -490,6 +491,7 @@ def main() -> None:
     app.add_handler(MessageHandler(filters.Document.ALL, on_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
 
+    log.info("LumysAgent © 2026 Iryna Subbotina — proprietary, all rights reserved (see LICENSE/NOTICE)")
     log.info("LumysAgent Orchestrator starting — chats: %s", sorted(ALLOWED_CHAT_IDS))
     app.run_polling(close_loop=False)
 
