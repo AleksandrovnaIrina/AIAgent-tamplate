@@ -87,7 +87,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/1on1 \\[тема\\] — підготовка 1:1\n"
         "/email — самарі листів Gmail\n"
         "/new — нова сесія\n\n"
-        "_© Iryna Subbotina — proprietary, не для розповсюдження_",
+        "_© Iryna Subbotina — proprietary, не для розповсюдження_\n"
+        "_Зроблено [@IrynaS\\_HR](https://t.me/IrynaS_HR)_",
         parse_mode="Markdown",
     )
 
